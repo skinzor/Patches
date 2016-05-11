@@ -1,0 +1,46 @@
+diff --git a/src/com/android/phone/NotificationMgr.java b/src/com/android/phone/NotificationMgr.java
+index 468c26f..6dae0cc 100644
+--- a/src/com/android/phone/NotificationMgr.java
++++ b/src/com/android/phone/NotificationMgr.java
+@@ -341,7 +341,8 @@ public class NotificationMgr {
+      * @param enableNotificationSound {@code true} if the notification sound should be played.
+      */
+     void updateMwi(int subId, boolean visible, boolean enableNotificationSound) {
+-        if (!PhoneGlobals.sVoiceCapable) {
++        return;
++        /*! if (!PhoneGlobals.sVoiceCapable) {
+             // Do not show the message waiting indicator on devices which are not voice capable.
+             // These events *should* be blocked at the telephony layer for such devices.
+             Log.w(LOG_TAG, "Called updateMwi() on non-voice-capable device! Ignoring...");
+@@ -459,7 +460,7 @@ public class NotificationMgr {
+             }
+ 
+             PendingIntent pendingIntent =
+-                    PendingIntent.getActivity(mContext, subId /* requestCode */, intent, 0);
++                    PendingIntent.getActivity(mContext, subId /!* requestCode *!/, intent, 0);
+             Uri ringtoneUri = null;
+ 
+             if (enableNotificationSound) {
+@@ -497,7 +498,7 @@ public class NotificationMgr {
+                     if (!sendNotificationCustomComponent(vmCount, vmNumber, pendingIntent,
+                             isSettingsIntent)) {
+                         mNotificationManager.notifyAsUser(
+-                                Integer.toString(subId) /* tag */,
++                                Integer.toString(subId) /!* tag *!/,
+                                 VOICEMAIL_NOTIFICATION,
+                                 notification,
+                                 userHandle);
+@@ -507,11 +508,11 @@ public class NotificationMgr {
+         } else {
+             if (!sendNotificationCustomComponent(0, null, null, false)) {
+                 mNotificationManager.cancelAsUser(
+-                        Integer.toString(subId) /* tag */,
++                        Integer.toString(subId) /!* tag *!/,
+                         VOICEMAIL_NOTIFICATION,
+                         UserHandle.ALL);
+             }
+-        }
++        } !*/
+     }
+ 
+     private boolean showSimSlotIcon() {

@@ -1,0 +1,39 @@
+From 2a29f729733c899bb546bfd8056cdb6f6e1df490 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Beno=C3=AEt=20Laniel?= <nels+git@pgroupe.net>
+Date: Tue, 19 Jan 2016 20:17:21 +0100
+Subject: [PATCH] Revert "Remove Parcel::writeIntPtr."
+
+This reverts commit 7da40c0a84dd89e92201448dd5ed3387dc94df2b.
+---
+ include/binder/Parcel.h | 1 +
+ libs/binder/Parcel.cpp  | 5 +++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/include/binder/Parcel.h b/include/binder/Parcel.h
+index 91ffae0..05b8d1b 100644
+--- a/include/binder/Parcel.h
++++ b/include/binder/Parcel.h
+@@ -100,6 +100,7 @@ class Parcel {
+     status_t            writeUint64(uint64_t val);
+     status_t            writeFloat(float val);
+     status_t            writeDouble(double val);
++    status_t            writeIntPtr(intptr_t val);
+     status_t            writeCString(const char* str);
+     status_t            writeString8(const String8& str);
+     status_t            writeString16(const String16& str);
+diff --git a/libs/binder/Parcel.cpp b/libs/binder/Parcel.cpp
+index 4f539a8..6dd5695 100644
+--- a/libs/binder/Parcel.cpp
++++ b/libs/binder/Parcel.cpp
+@@ -837,6 +837,11 @@ status_t Parcel::writeDouble(double val)
+ 
+ #endif
+ 
++status_t Parcel::writeIntPtr(intptr_t val)
++{
++    return writeAligned(val);
++}
++
+ status_t Parcel::writeCString(const char* str)
+ {
+     return write(str, strlen(str)+1);

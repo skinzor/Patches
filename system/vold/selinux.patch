@@ -1,0 +1,36 @@
+diff --git a/Utils.cpp b/Utils.cpp
+index 6ffdd7f..c0e8f03 100644
+--- a/Utils.cpp
++++ b/Utils.cpp
+@@ -283,13 +283,11 @@ status_t ForkExecvp(const std::vector<std::string>& args, security_context_t con
+     }
+ 
+     if (setexeccon(context)) {
+-        LOG(ERROR) << "Failed to setexeccon";
+-        abort();
++        LOG(WARNING) << "Failed to setexeccon";
+     }
+     status_t res = android_fork_execvp(argc, argv, NULL, false, true);
+     if (setexeccon(nullptr)) {
+-        LOG(ERROR) << "Failed to setexeccon";
+-        abort();
++        LOG(WARNING) << "Failed to setexeccon";
+     }
+ 
+     free(argv);
+@@ -315,13 +313,11 @@ status_t ForkExecvp(const std::vector<std::string>& args,
+     output.clear();
+ 
+     if (setexeccon(context)) {
+-        LOG(ERROR) << "Failed to setexeccon";
+-        abort();
++        LOG(WARNING) << "Failed to setexeccon";
+     }
+     FILE* fp = popen(cmd.c_str(), "r");
+     if (setexeccon(nullptr)) {
+-        LOG(ERROR) << "Failed to setexeccon";
+-        abort();
++        LOG(WARNING) << "Failed to setexeccon";
+     }
+ 
+     if (!fp) {

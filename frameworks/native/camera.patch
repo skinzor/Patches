@@ -1,0 +1,85 @@
+diff --git a/include/gui/SensorManager.h b/include/gui/SensorManager.h
+index 0cff46c..8d69f52 100644
+--- a/include/gui/SensorManager.h
++++ b/include/gui/SensorManager.h
+@@ -48,15 +48,18 @@ class SensorEventQueue;
+ // ----------------------------------------------------------------------------
+
+ class SensorManager :
+-    public ASensorManager
++    public ASensorManager,
++    public Singleton<SensorManager>
+ {
+ public:
++    SensorManager();
+     static SensorManager& getInstanceForPackage(const String16& packageName);
+     ~SensorManager();
+
+     ssize_t getSensorList(Sensor const* const** list) const;
+     Sensor const* getDefaultSensor(int type);
+-    sp<SensorEventQueue> createEventQueue(String8 packageName = String8(""), int mode = 0);
++    sp<SensorEventQueue> createEventQueue();
++    sp<SensorEventQueue> createEventQueue(String8 packageName, int mode);
+     bool isDataInjectionEnabled();
+
+ private:
+diff --git a/libs/gui/SensorManager.cpp b/libs/gui/SensorManager.cpp
+index 33608b5..d6b5112 100644
+--- a/libs/gui/SensorManager.cpp
++++ b/libs/gui/SensorManager.cpp
+@@ -88,6 +88,15 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
+     return *sensorManager;
+ }
+
++ANDROID_SINGLETON_STATIC_INSTANCE(SensorManager)
++
++SensorManager::SensorManager()
++    : mSensorList(0), mOpPackageName(String16("legacy"))
++{
++    // okay we're not locked here, but it's not needed during construction
++    assertStateLocked();
++}
++
+ SensorManager::SensorManager(const String16& opPackageName)
+     : mSensorList(0), mOpPackageName(opPackageName)
+ {
+@@ -201,6 +210,10 @@ Sensor const* SensorManager::getDefaultSensor(int type)
+     return NULL;
+ }
+
++sp<SensorEventQueue> SensorManager::createEventQueue() {
++    return SensorManager::createEventQueue(String8(""), 0);
++}
++
+ sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mode) {
+     sp<SensorEventQueue> queue;
+
+diff --git a/libs/gui/SurfaceControl.cpp b/libs/gui/SurfaceControl.cpp
+index 8212b90..90c7c52 100644
+--- a/libs/gui/SurfaceControl.cpp
++++ b/libs/gui/SurfaceControl.cpp
+@@ -212,3 +212,9 @@ sp<Surface> SurfaceControl::getSurface() const
+
+ // ----------------------------------------------------------------------------
+ }; // namespace android
++
++extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEj(uint32_t);
++extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t);
++extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t layer) {
++    return _ZN7android14SurfaceControl8setLayerEj(static_cast<uint32_t>(layer));
++}
+diff --git a/libs/ui/GraphicBufferMapper.cpp b/libs/ui/GraphicBufferMapper.cpp
+index 0580e16..3e9e022 100644
+--- a/libs/ui/GraphicBufferMapper.cpp
++++ b/libs/ui/GraphicBufferMapper.cpp
+@@ -205,3 +205,10 @@ status_t GraphicBufferMapper::getphys(buffer_handle_t handle, void** paddr)
+
+ // ---------------------------------------------------------------------------
+ }; // namespace android
++
++extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(void*, buffer_handle_t, uint32_t, const android::Rect&, void**);
++extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handleiRKNS_4RectEPPv(void*, buffer_handle_t, int, const android::Rect&, void**);
++extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handleiRKNS_4RectEPPv(void* obj, buffer_handle_t handle, int usage, const android::Rect& bounds, void** vaddr)
++{
++    return _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(obj, handle, static_cast<uint32_t>(usage), bounds, vaddr);
++}

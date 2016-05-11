@@ -1,0 +1,23 @@
+diff --git a/src/com/android/camera/DisableCameraReceiver.java b/src/com/android/camera/DisableCameraReceiver.java
+index 4cef85f..7dc3057 100644
+--- a/src/com/android/camera/DisableCameraReceiver.java
++++ b/src/com/android/camera/DisableCameraReceiver.java
+@@ -36,18 +36,6 @@ public class DisableCameraReceiver extends BroadcastReceiver {
+ 
+     @Override
+     public void onReceive(Context context, Intent intent) {
+-        // Disable camera-related activities if there is no camera.
+-        boolean needCameraActivity = CHECK_BACK_CAMERA_ONLY
+-            ? hasBackCamera()
+-            : hasCamera();
+-
+-        if (!needCameraActivity) {
+-            Log.i(TAG, "disable all camera activities");
+-            for (int i = 0; i < ACTIVITIES.length; i++) {
+-                disableComponent(context, ACTIVITIES[i]);
+-            }
+-        }
+-
+         // Disable this receiver so it won't run again.
+         disableComponent(context, "com.android.camera.DisableCameraReceiver");
+     }
