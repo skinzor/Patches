@@ -1,23 +1,21 @@
-From 2b97b5e868e3dc317612947a9f7d914857ff27b7 Mon Sep 17 00:00:00 2001
+From 1ce459f9470e0b9ce0c39b5fe180d1d90eeee374 Mon Sep 17 00:00:00 2001
 From: tank0412 <romabukhtiarov@gmail.com>
-Date: Mon, 25 Sep 2017 06:21:44 +0300
+Date: Mon, 25 Sep 2017 07:46:24 +0300
 Subject: [PATCH] Shim missing camera symbols on O
 
-Change-Id: Ie7ec79d7eea8b03f35d054cdefb9fbd73f1aa06d
+Change-Id: Ibbc79ef38c7c3509a38c88a58c0e65d41053523e
 ---
- libs/gui/SurfaceControl.cpp                |  18 ++++
- libs/sensor/SensorManager.cpp              |  15 +++
- libs/sensor/include/sensor/SensorManager.h |   7 +-
- libs/ui/GraphicBufferMapper.cpp            |   8 ++
- services/sensorservice/SensorDevice.cpp    | 112 -------------------
- services/sensorservice/SensorService.cpp   | 167 -----------------------------
- 6 files changed, 46 insertions(+), 281 deletions(-)
+ libs/gui/SurfaceControl.cpp                | 17 +++++++++++++++++
+ libs/sensor/SensorManager.cpp              | 13 +++++++++++++
+ libs/sensor/include/sensor/SensorManager.h |  7 +++++--
+ libs/ui/GraphicBufferMapper.cpp            |  7 +++++++
+ 4 files changed, 42 insertions(+), 2 deletions(-)
 
 diff --git a/libs/gui/SurfaceControl.cpp b/libs/gui/SurfaceControl.cpp
-index 58bd273..30ee4a0 100644
+index 58bd273..a8f59d2 100644
 --- a/libs/gui/SurfaceControl.cpp
 +++ b/libs/gui/SurfaceControl.cpp
-@@ -269,3 +269,21 @@ sp<IBinder> SurfaceControl::getHandle() const
+@@ -269,3 +269,20 @@ sp<IBinder> SurfaceControl::getHandle() const
  
  // ----------------------------------------------------------------------------
  }; // namespace android
@@ -27,7 +25,7 @@ index 58bd273..30ee4a0 100644
 +/*
 +extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t layer) {
 +    return _ZN7android14SurfaceControl8setLayerEj(static_cast<uint32_t>(layer));
-++}
++}
 +
 +BECAUSE OF frameworks/native/libs/gui/SurfaceControl.cpp:275:30: error: definition with same mangled name as another definition
 +extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t layer) {
@@ -38,12 +36,11 @@ index 58bd273..30ee4a0 100644
 +1 error generated.
 +*/
 +
-+
 diff --git a/libs/sensor/SensorManager.cpp b/libs/sensor/SensorManager.cpp
-index 3fbc5eb..c1fba88 100644
+index 3fbc5eb..ff82ee0 100644
 --- a/libs/sensor/SensorManager.cpp
 +++ b/libs/sensor/SensorManager.cpp
-@@ -91,6 +91,16 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
+@@ -91,6 +91,15 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
      return *sensorManager;
  }
  
@@ -56,18 +53,16 @@ index 3fbc5eb..c1fba88 100644
 +    assertStateLocked();
 +}
 +
-+
  SensorManager::SensorManager(const String16& opPackageName)
      : mSensorList(0), mOpPackageName(opPackageName), mDirectConnectionHandle(1) {
      // okay we're not locked here, but it's not needed during construction
-@@ -224,6 +234,11 @@ Sensor const* SensorManager::getDefaultSensor(int type)
+@@ -224,6 +233,10 @@ Sensor const* SensorManager::getDefaultSensor(int type)
      return NULL;
  }
  
 +sp<SensorEventQueue> SensorManager::createEventQueue() {
 +    return SensorManager::createEventQueue(String8(""), 0);
 +}
-+
 +
  sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mode) {
      sp<SensorEventQueue> queue;
@@ -106,14 +101,13 @@ index 5fc85d3..6aae409 100644
      int createDirectChannel(size_t size, int channelType, const native_handle_t *channelData);
      void destroyDirectChannel(int channelNativeHandle);
 diff --git a/libs/ui/GraphicBufferMapper.cpp b/libs/ui/GraphicBufferMapper.cpp
-index b9fa640..515c093 100644
+index b9fa640..aa11b50 100644
 --- a/libs/ui/GraphicBufferMapper.cpp
 +++ b/libs/ui/GraphicBufferMapper.cpp
-@@ -179,3 +179,11 @@ status_t GraphicBufferMapper::unlockAsync(buffer_handle_t handle, int *fenceFd)
+@@ -179,3 +179,10 @@ status_t GraphicBufferMapper::unlockAsync(buffer_handle_t handle, int *fenceFd)
  
  // ---------------------------------------------------------------------------
  }; // namespace android
-+
 +
 +extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(void*, buffer_handle_t, uint32_t, const android::Rect&, void**);
 +extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handleiRKNS_4RectEPPv(void*, buffer_handle_t, int, const android::Rect&, void**);
@@ -121,3 +115,5 @@ index b9fa640..515c093 100644
 +{
 +   return _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(obj, handle, static_cast<uint32_t>(usage), bounds, vaddr);
 +}
+-- 
+2.7.4
