@@ -1,85 +1,123 @@
-diff --git a/include/gui/SensorManager.h b/include/gui/SensorManager.h
-index 0cff46c..8d69f52 100644
---- a/include/gui/SensorManager.h
-+++ b/include/gui/SensorManager.h
-@@ -48,15 +48,18 @@ class SensorEventQueue;
- // ----------------------------------------------------------------------------
+From 2b97b5e868e3dc317612947a9f7d914857ff27b7 Mon Sep 17 00:00:00 2001
+From: tank0412 <romabukhtiarov@gmail.com>
+Date: Mon, 25 Sep 2017 06:21:44 +0300
+Subject: [PATCH] Shim missing camera symbols on O
 
- class SensorManager :
--    public ASensorManager
-+    public ASensorManager,
-+    public Singleton<SensorManager>
- {
- public:
-+    SensorManager();
-     static SensorManager& getInstanceForPackage(const String16& packageName);
-     ~SensorManager();
-
-     ssize_t getSensorList(Sensor const* const** list) const;
-     Sensor const* getDefaultSensor(int type);
--    sp<SensorEventQueue> createEventQueue(String8 packageName = String8(""), int mode = 0);
-+    sp<SensorEventQueue> createEventQueue();
-+    sp<SensorEventQueue> createEventQueue(String8 packageName, int mode);
-     bool isDataInjectionEnabled();
-
- private:
-diff --git a/libs/gui/SensorManager.cpp b/libs/gui/SensorManager.cpp
-index 33608b5..d6b5112 100644
---- a/libs/gui/SensorManager.cpp
-+++ b/libs/gui/SensorManager.cpp
-@@ -88,6 +88,15 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
-     return *sensorManager;
- }
-
-+ANDROID_SINGLETON_STATIC_INSTANCE(SensorManager)
-+
-+SensorManager::SensorManager()
-+    : mSensorList(0), mOpPackageName(String16("legacy"))
-+{
-+    // okay we're not locked here, but it's not needed during construction
-+    assertStateLocked();
-+}
-+
- SensorManager::SensorManager(const String16& opPackageName)
-     : mSensorList(0), mOpPackageName(opPackageName)
- {
-@@ -201,6 +210,10 @@ Sensor const* SensorManager::getDefaultSensor(int type)
-     return NULL;
- }
-
-+sp<SensorEventQueue> SensorManager::createEventQueue() {
-+    return SensorManager::createEventQueue(String8(""), 0);
-+}
-+
- sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mode) {
-     sp<SensorEventQueue> queue;
+Change-Id: Ie7ec79d7eea8b03f35d054cdefb9fbd73f1aa06d
+---
+ libs/gui/SurfaceControl.cpp                |  18 ++++
+ libs/sensor/SensorManager.cpp              |  15 +++
+ libs/sensor/include/sensor/SensorManager.h |   7 +-
+ libs/ui/GraphicBufferMapper.cpp            |   8 ++
+ services/sensorservice/SensorDevice.cpp    | 112 -------------------
+ services/sensorservice/SensorService.cpp   | 167 -----------------------------
+ 6 files changed, 46 insertions(+), 281 deletions(-)
 
 diff --git a/libs/gui/SurfaceControl.cpp b/libs/gui/SurfaceControl.cpp
-index 8212b90..90c7c52 100644
+index 58bd273..30ee4a0 100644
 --- a/libs/gui/SurfaceControl.cpp
 +++ b/libs/gui/SurfaceControl.cpp
-@@ -212,3 +212,9 @@ sp<Surface> SurfaceControl::getSurface() const
-
+@@ -269,3 +269,21 @@ sp<IBinder> SurfaceControl::getHandle() const
+ 
  // ----------------------------------------------------------------------------
  }; // namespace android
 +
 +extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEj(uint32_t);
 +extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t);
++/*
 +extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t layer) {
 +    return _ZN7android14SurfaceControl8setLayerEj(static_cast<uint32_t>(layer));
+++}
++
++BECAUSE OF frameworks/native/libs/gui/SurfaceControl.cpp:275:30: error: definition with same mangled name as another definition
++extern "C" android::status_t _ZN7android14SurfaceControl8setLayerEi(int32_t layer) {
++                             ^
++frameworks/native/libs/gui/SurfaceControl.cpp:106:26: note: previous definition is here
++status_t SurfaceControl::setLayer(int32_t layer) {
++                         ^
++1 error generated.
++*/
++
++
+diff --git a/libs/sensor/SensorManager.cpp b/libs/sensor/SensorManager.cpp
+index 3fbc5eb..c1fba88 100644
+--- a/libs/sensor/SensorManager.cpp
++++ b/libs/sensor/SensorManager.cpp
+@@ -91,6 +91,16 @@ SensorManager& SensorManager::getInstanceForPackage(const String16& packageName)
+     return *sensorManager;
+ }
+ 
++ANDROID_SINGLETON_STATIC_INSTANCE(SensorManager)
++
++SensorManager::SensorManager()
++   : mSensorList(0), mOpPackageName(String16("legacy"))
++{
++    // okay we're not locked here, but it's not needed during construction
++    assertStateLocked();
 +}
++
++
+ SensorManager::SensorManager(const String16& opPackageName)
+     : mSensorList(0), mOpPackageName(opPackageName), mDirectConnectionHandle(1) {
+     // okay we're not locked here, but it's not needed during construction
+@@ -224,6 +234,11 @@ Sensor const* SensorManager::getDefaultSensor(int type)
+     return NULL;
+ }
+ 
++sp<SensorEventQueue> SensorManager::createEventQueue() {
++    return SensorManager::createEventQueue(String8(""), 0);
++}
++
++
+ sp<SensorEventQueue> SensorManager::createEventQueue(String8 packageName, int mode) {
+     sp<SensorEventQueue> queue;
+ 
+diff --git a/libs/sensor/include/sensor/SensorManager.h b/libs/sensor/include/sensor/SensorManager.h
+index 5fc85d3..6aae409 100644
+--- a/libs/sensor/include/sensor/SensorManager.h
++++ b/libs/sensor/include/sensor/SensorManager.h
+@@ -31,6 +31,7 @@
+ #include <utils/StrongPointer.h>
+ #include <utils/Vector.h>
+ #include <utils/String8.h>
++#include <utils/Singleton.h>
+ 
+ #include <sensor/SensorEventQueue.h>
+ 
+@@ -50,16 +51,18 @@ class Sensor;
+ class SensorEventQueue;
+ // ----------------------------------------------------------------------------
+ 
+-class SensorManager : public ASensorManager
++class SensorManager : public ASensorManager, public Singleton<SensorManager>
+ {
+ public:
++    SensorManager();
+     static SensorManager& getInstanceForPackage(const String16& packageName);
+     ~SensorManager();
+ 
+     ssize_t getSensorList(Sensor const* const** list);
+     ssize_t getDynamicSensorList(Vector<Sensor>& list);
+     Sensor const* getDefaultSensor(int type);
+-    sp<SensorEventQueue> createEventQueue(String8 packageName = String8(""), int mode = 0);
++    sp<SensorEventQueue> createEventQueue();
++    sp<SensorEventQueue> createEventQueue(String8 packageName, int mode);
+     bool isDataInjectionEnabled();
+     int createDirectChannel(size_t size, int channelType, const native_handle_t *channelData);
+     void destroyDirectChannel(int channelNativeHandle);
 diff --git a/libs/ui/GraphicBufferMapper.cpp b/libs/ui/GraphicBufferMapper.cpp
-index 0580e16..3e9e022 100644
+index b9fa640..515c093 100644
 --- a/libs/ui/GraphicBufferMapper.cpp
 +++ b/libs/ui/GraphicBufferMapper.cpp
-@@ -205,3 +205,10 @@ status_t GraphicBufferMapper::getphys(buffer_handle_t handle, void** paddr)
-
+@@ -179,3 +179,11 @@ status_t GraphicBufferMapper::unlockAsync(buffer_handle_t handle, int *fenceFd)
+ 
  // ---------------------------------------------------------------------------
  }; // namespace android
++
 +
 +extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(void*, buffer_handle_t, uint32_t, const android::Rect&, void**);
 +extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handleiRKNS_4RectEPPv(void*, buffer_handle_t, int, const android::Rect&, void**);
 +extern "C" android::status_t _ZN7android19GraphicBufferMapper4lockEPK13native_handleiRKNS_4RectEPPv(void* obj, buffer_handle_t handle, int usage, const android::Rect& bounds, void** vaddr)
 +{
-+    return _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(obj, handle, static_cast<uint32_t>(usage), bounds, vaddr);
++   return _ZN7android19GraphicBufferMapper4lockEPK13native_handlejRKNS_4RectEPPv(obj, handle, static_cast<uint32_t>(usage), bounds, vaddr);
 +}
